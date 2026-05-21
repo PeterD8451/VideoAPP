@@ -54,7 +54,12 @@ Auf iOS ist Safari notwendig, um die App über *Teilen → Zum Home-Bildschirm* 
 
 ## Hinweis zur Frame-Genauigkeit
 
-Beim Laden eines Videos wird die FPS automatisch erkannt: Über `requestVideoFrameCallback` werden ~24 echte Frame-Zeitstempel gemessen und der Median auf die nächstliegende gängige Rate (24, 25, 29.97, 30, 50, 59.94, 60, 120, 240) gerundet. Funktioniert in Chrome (Android/Desktop), Safari iOS 15.4+ und allen modernen Desktop-Browsern. Wenn die Erkennung nicht möglich ist (z.B. ältere Firefox-Versionen), wird auf 30 fps zurückgegriffen.
+Beim Laden eines Videos wird die FPS automatisch in zwei Stufen erkannt:
+
+1. **Container-Metadata** (primär, instant): Direkt aus dem MP4/MOV-Atombaum gelesen (`moov → trak → mdia → mdhd.timescale / stts.sample_duration`). Funktioniert codec-unabhängig – HEVC, H.264, AV1, VP9 in MP4/MOV werden alle gleich behandelt.
+2. **Playback-Fallback**: Wenn keine lesbaren Metadaten gefunden werden (z.B. WebM), spielt die App das Video kurz stumm ab und misst Frame-Intervalle via `requestVideoFrameCallback`.
+
+Der erkannte Wert wird auf die nächstgängige Rate gerundet (24, 25, 29.97, 30, 50, 59.94, 60, 120, 240). Wenn beides scheitert (sehr exotische Container), fällt die App auf 30 fps zurück.
 
 ## Tech
 

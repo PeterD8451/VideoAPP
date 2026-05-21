@@ -88,6 +88,147 @@
     return fps.toFixed(2);
   }
 
+  // ── MP4 / MOV Container Metadata Parser ──────────────────────────────
+  // Liest die Frame-Rate direkt aus dem ISO-BMFF-Atombaum:
+  //   moov → trak(hdlr=vide) → mdia → mdhd.timescale + minf/stbl/stts.sample_duration
+  // Codec-unabhängig (HEVC/H.264/AV1/VP9 in MP4/MOV).
+  async function parseFpsFromContainer(file) {
+    if (!file || file.size < 32) return null;
+    try {
+      const moov = await findMoov(file);
+      if (!moov) return null;
+      return extractFpsFromMoov(moov);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function readBytes(file, offset, length) {
+    const end = Math.min(file.size, offset + length);
+    const blob = file.slice(offset, end);
+    return new Uint8Array(await blob.arrayBuffer());
+  }
+
+  function readType(bytes, offset) {
+    return String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+  }
+
+  function readBoxHeader(bytes, view, offset) {
+    if (offset + 8 > bytes.length) return null;
+    let size = view.getUint32(offset);
+    const type = readType(bytes, offset + 4);
+    let headerSize = 8;
+    if (size === 1) {
+      if (offset + 16 > bytes.length) return null;
+      const hi = view.getUint32(offset + 8);
+      const lo = view.getUint32(offset + 12);
+      size = hi * 0x100000000 + lo;
+      headerSize = 16;
+    } else if (size === 0) {
+      size = bytes.length - offset;
+    }
+    if (size < headerSize) return null;
+    return { type, size, headerSize, contentOffset: offset + headerSize, endOffset: offset + size };
+  }
+
+  async function findMoov(file) {
+    let offset = 0;
+    let iterations = 0;
+    while (offset < file.size && iterations++ < 50) {
+      const header = await readBytes(file, offset, 16);
+      if (header.length < 8) return null;
+      const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
+      let size = view.getUint32(0);
+      const type = readType(header, 4);
+      let headerSize = 8;
+      if (size === 1) {
+        if (header.length < 16) return null;
+        const hi = view.getUint32(8);
+        const lo = view.getUint32(12);
+        size = hi * 0x100000000 + lo;
+        headerSize = 16;
+      } else if (size === 0) {
+        size = file.size - offset;
+      }
+      if (size < headerSize || offset + size > file.size) return null;
+      if (type === 'moov') return await readBytes(file, offset, size);
+      offset += size;
+    }
+    return null;
+  }
+
+  function findChildBox(bytes, view, startOffset, endOffset, targetType) {
+    let offset = startOffset;
+    while (offset < endOffset) {
+      const box = readBoxHeader(bytes, view, offset);
+      if (!box || box.endOffset > endOffset) return null;
+      if (box.type === targetType) return box;
+      offset = box.endOffset;
+    }
+    return null;
+  }
+
+  function extractFpsFromMoov(moov) {
+    const view = new DataView(moov.buffer, moov.byteOffset, moov.byteLength);
+    let offset = 8;
+    while (offset < moov.length) {
+      const box = readBoxHeader(moov, view, offset);
+      if (!box) break;
+      if (box.type === 'trak') {
+        const result = parseTrack(moov, view, box.contentOffset, box.endOffset);
+        if (result) return result;
+      }
+      offset = box.endOffset;
+    }
+    return null;
+  }
+
+  function parseTrack(bytes, view, startOffset, endOffset) {
+    const mdia = findChildBox(bytes, view, startOffset, endOffset, 'mdia');
+    if (!mdia) return null;
+
+    const hdlr = findChildBox(bytes, view, mdia.contentOffset, mdia.endOffset, 'hdlr');
+    if (!hdlr || hdlr.contentOffset + 12 > bytes.length) return null;
+    const handlerType = readType(bytes, hdlr.contentOffset + 8);
+    if (handlerType !== 'vide') return null;
+
+    const mdhd = findChildBox(bytes, view, mdia.contentOffset, mdia.endOffset, 'mdhd');
+    if (!mdhd) return null;
+    const version = view.getUint8(mdhd.contentOffset);
+    let timescale;
+    if (version === 0) timescale = view.getUint32(mdhd.contentOffset + 12);
+    else if (version === 1) timescale = view.getUint32(mdhd.contentOffset + 20);
+    else return null;
+    if (!timescale) return null;
+
+    const minf = findChildBox(bytes, view, mdia.contentOffset, mdia.endOffset, 'minf');
+    if (!minf) return null;
+    const stbl = findChildBox(bytes, view, minf.contentOffset, minf.endOffset, 'stbl');
+    if (!stbl) return null;
+    const stts = findChildBox(bytes, view, stbl.contentOffset, stbl.endOffset, 'stts');
+    if (!stts) return null;
+
+    const entryCount = view.getUint32(stts.contentOffset + 4);
+    if (!entryCount) return null;
+    if (stts.contentOffset + 8 + entryCount * 8 > stts.endOffset) return null;
+
+    const durations = new Map();
+    for (let i = 0; i < entryCount; i++) {
+      const sampleCount = view.getUint32(stts.contentOffset + 8 + i * 8);
+      const sampleDuration = view.getUint32(stts.contentOffset + 8 + i * 8 + 4);
+      if (sampleDuration > 0 && sampleCount > 0) {
+        durations.set(sampleDuration, (durations.get(sampleDuration) || 0) + sampleCount);
+      }
+    }
+    if (!durations.size) return null;
+
+    let bestDuration = 0, bestCount = 0;
+    for (const [duration, count] of durations) {
+      if (count > bestCount) { bestCount = count; bestDuration = duration; }
+    }
+    return bestDuration ? timescale / bestDuration : null;
+  }
+
   function detectVideoFps() {
     return new Promise((resolve) => {
       if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
@@ -272,7 +413,7 @@
     if (!file) return;
     const url = URL.createObjectURL(file);
     if (state.currentFile) URL.revokeObjectURL(state.currentFile.url);
-    state.currentFile = { name: file.name, url };
+    state.currentFile = { name: file.name, url, file };
     video.src = url;
     video.load();
     placeholder.classList.add('hidden');
@@ -284,13 +425,29 @@
     updateMarkersDisplay();
   });
 
+  let detectionEpoch = 0;
   video.addEventListener('loadeddata', async () => {
+    const epoch = ++detectionEpoch;
     fpsDisplay.textContent = '…';
-    const detected = await detectVideoFps();
+    state.fps = 30;
+    let detected = null;
+
+    // 1) Container-Metadata (MP4/MOV) – instant, ohne Wiedergabe
+    if (state.currentFile && state.currentFile.file) {
+      const raw = await parseFpsFromContainer(state.currentFile.file);
+      if (epoch !== detectionEpoch) return;
+      if (raw && isFinite(raw) && raw > 0) detected = snapFps(raw);
+    }
+
+    // 2) Playback-Fallback (für WebM und Container ohne lesbares moov)
+    if (!detected) {
+      detected = await detectVideoFps();
+      if (epoch !== detectionEpoch) return;
+    }
+
     if (detected) {
       state.fps = detected;
     } else {
-      state.fps = 30;
       toast('FPS-Erkennung nicht möglich – Standard 30');
     }
     fpsDisplay.textContent = formatFps(state.fps);
