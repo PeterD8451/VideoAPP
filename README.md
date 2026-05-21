@@ -54,7 +54,7 @@ Auf iOS ist Safari notwendig, um die App über *Teilen → Zum Home-Bildschirm* 
 
 ## Hinweis zur Frame-Genauigkeit
 
-Browser stellen die exakte FPS eines Videos nicht zuverlässig zur Verfügung. Stelle den FPS-Wert manuell so ein, wie das Video aufgenommen wurde (z.B. 24, 25, 30, 60, 120, 240). Davon hängen Frame-Schrittgröße und die in der CSV exportierte Frame-Anzahl ab.
+Beim Laden eines Videos wird die FPS automatisch erkannt: Über `requestVideoFrameCallback` werden ~24 echte Frame-Zeitstempel gemessen und der Median auf die nächstliegende gängige Rate (24, 25, 29.97, 30, 50, 59.94, 60, 120, 240) gerundet. Funktioniert in Chrome (Android/Desktop), Safari iOS 15.4+ und allen modernen Desktop-Browsern. Wenn die Erkennung nicht möglich ist (z.B. ältere Firefox-Versionen), wird auf 30 fps zurückgegriffen.
 
 ## Tech
 
