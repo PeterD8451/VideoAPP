@@ -7,7 +7,7 @@
 
   const currentTimeEl = document.getElementById('currentTime');
   const currentFrameEl = document.getElementById('currentFrame');
-  const fpsInput = document.getElementById('fpsInput');
+  const fpsDisplay = document.getElementById('fpsDisplay');
   const seekBar = document.getElementById('seekBar');
 
   const playBtn = document.getElementById('playBtn');
@@ -15,7 +15,7 @@
   const stepFwdBtn = document.getElementById('stepFwdBtn');
   const jumpBack10Btn = document.getElementById('jumpBack10Btn');
   const jumpFwd10Btn = document.getElementById('jumpFwd10Btn');
-  const speedBtn = document.getElementById('speedBtn');
+  const speedSelect = document.getElementById('speedSelect');
 
   const setStartBtn = document.getElementById('setStartBtn');
   const setEndBtn = document.getElementById('setEndBtn');
@@ -39,10 +39,10 @@
     startTime: null,
     endTime: null,
     measurements: [],
-    speeds: [0.25, 0.5, 1.0, 1.5, 2.0],
-    speedIdx: 2,
     currentFile: null,
   };
+
+  fpsDisplay.textContent = String(state.fps);
 
   // ── Utilities ─────────────────────────────────────────────────────────
   function fmtTime(seconds) {
@@ -234,11 +234,9 @@
   jumpBack10Btn.addEventListener('click', () => jumpFrames(-10));
   jumpFwd10Btn.addEventListener('click', () => jumpFrames(+10));
 
-  speedBtn.addEventListener('click', () => {
-    state.speedIdx = (state.speedIdx + 1) % state.speeds.length;
-    const sp = state.speeds[state.speedIdx];
-    video.playbackRate = sp;
-    speedBtn.textContent = `${sp.toFixed(2).replace(/\.?0+$/, '')}×`;
+  speedSelect.addEventListener('change', () => {
+    const sp = parseFloat(speedSelect.value);
+    if (isFinite(sp) && sp > 0) video.playbackRate = sp;
   });
 
   seekBar.addEventListener('input', () => {
@@ -246,17 +244,6 @@
     pauseIfNeeded();
     const ratio = Number(seekBar.value) / 1000;
     video.currentTime = ratio * video.duration;
-  });
-
-  fpsInput.addEventListener('change', () => {
-    const v = parseFloat(fpsInput.value);
-    if (isFinite(v) && v > 0 && v <= 240) {
-      state.fps = v;
-    } else {
-      fpsInput.value = String(state.fps);
-    }
-    updateTimeDisplay();
-    updateMarkersDisplay();
   });
 
   setStartBtn.addEventListener('click', () => {
