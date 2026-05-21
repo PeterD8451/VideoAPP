@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videoapp-v2';
+const CACHE_NAME = 'videoapp-v3';
 const ASSETS = [
   './',
   './index.html',

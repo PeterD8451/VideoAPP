@@ -71,6 +71,83 @@
     return f / state.fps;
   }
 
+  function snapFps(raw) {
+    const candidates = [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60, 90, 100, 119.88, 120, 240];
+    let best = candidates[0];
+    let bestRel = Math.abs(raw - best) / best;
+    for (const c of candidates) {
+      const rel = Math.abs(raw - c) / c;
+      if (rel < bestRel) { bestRel = rel; best = c; }
+    }
+    if (bestRel < 0.03) return best;
+    return Math.round(raw * 100) / 100;
+  }
+
+  function formatFps(fps) {
+    if (Math.abs(fps - Math.round(fps)) < 0.005) return String(Math.round(fps));
+    return fps.toFixed(2);
+  }
+
+  function detectVideoFps() {
+    return new Promise((resolve) => {
+      if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+        resolve(null);
+        return;
+      }
+      const MAX_SAMPLES = 24;
+      const TIMEOUT_MS = 2500;
+      const prevMuted = video.muted;
+      const prevRate = video.playbackRate;
+      const samples = [];
+      let prevMediaTime = null;
+      let done = false;
+
+      const cleanup = () => {
+        try { video.pause(); } catch (_) {}
+        try { video.currentTime = 0; } catch (_) {}
+        video.muted = prevMuted;
+        video.playbackRate = prevRate;
+      };
+
+      const finalize = () => {
+        if (done) return;
+        done = true;
+        cleanup();
+        if (samples.length < 3) { resolve(null); return; }
+        samples.sort((a, b) => a - b);
+        const median = samples[Math.floor(samples.length / 2)];
+        if (!isFinite(median) || median <= 0) { resolve(null); return; }
+        resolve(snapFps(1 / median));
+      };
+
+      const onFrame = (_now, metadata) => {
+        if (done) return;
+        const mt = metadata.mediaTime;
+        if (prevMediaTime !== null) {
+          const dt = mt - prevMediaTime;
+          if (dt > 0.0005 && dt < 1) samples.push(dt);
+        }
+        prevMediaTime = mt;
+        if (samples.length >= MAX_SAMPLES) finalize();
+        else video.requestVideoFrameCallback(onFrame);
+      };
+
+      setTimeout(finalize, TIMEOUT_MS);
+
+      video.muted = true;
+      video.playbackRate = 2;
+      try { video.currentTime = 0; } catch (_) {}
+
+      const p = video.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => video.requestVideoFrameCallback(onFrame))
+         .catch(() => { if (!done) { done = true; cleanup(); resolve(null); } });
+      } else {
+        video.requestVideoFrameCallback(onFrame);
+      }
+    });
+  }
+
   let toastTimer = null;
   function toast(msg) {
     let el = document.querySelector('.toast');
@@ -205,7 +282,20 @@
     seekBar.disabled = false;
     updateTimeDisplay();
     updateMarkersDisplay();
-    // Best-effort FPS guess: keep user value, but if obviously unset, try common defaults via duration heuristics
+  });
+
+  video.addEventListener('loadeddata', async () => {
+    fpsDisplay.textContent = '…';
+    const detected = await detectVideoFps();
+    if (detected) {
+      state.fps = detected;
+    } else {
+      state.fps = 30;
+      toast('FPS-Erkennung nicht möglich – Standard 30');
+    }
+    fpsDisplay.textContent = formatFps(state.fps);
+    updateTimeDisplay();
+    updateMarkersDisplay();
   });
 
   video.addEventListener('timeupdate', updateTimeDisplay);
