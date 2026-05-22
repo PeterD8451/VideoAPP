@@ -273,19 +273,31 @@ main {
   color: #001018;
 }
 
-.btn-ctrl {
-  flex: 1;
-  font-size: 20px;
-  font-weight: 600;
-  max-width: 110px;
+/* All buttons & the speed dropdown inside the controls panel share
+   the same height, font and font-size — only colour distinguishes them. */
+.controls .btn,
+.controls .speed-select-wrap,
+.controls .speed-select {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.02em;
   font-variant-emoji: text;
   line-height: 1;
 }
 
+.controls .btn,
+.controls .speed-select-wrap {
+  min-height: var(--tap);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn-ctrl {
+  flex: 1;
+  font-size: 16px;
+}
+
 .btn-frame-step {
-  /* size & font handled by .btn-ctrl so the row is uniform */
+  /* uniform with the rest – styled by the rules above */
 }
 
 .btn-play {
@@ -295,7 +307,6 @@ main {
 
 .speed-select-wrap {
   flex: 1;
-  min-height: 40px;
   background: var(--bg-elev-2);
   border-radius: 10px;
   display: flex;
@@ -319,11 +330,10 @@ main {
   background: transparent;
   color: var(--text);
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   padding: 0 16px 0 2px;
   cursor: pointer;
-  font-family: inherit;
   background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
                     linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
   background-position: calc(100% - 8px) 50%, calc(100% - 4px) 50%;
@@ -336,15 +346,12 @@ main {
 
 .btn-small {
   flex: 1;
-  min-height: 40px;
-  font-size: 13px;
   padding: 0 10px;
 }
 
 .btn-marker {
   flex: 1;
-  min-height: var(--tap);
-  font-size: 14px;
+  padding: 0 8px;
 }
 
 .btn-start { background: var(--start); color: #052e16; }
@@ -530,8 +537,10 @@ main {
 }
 
 @media (max-width: 380px) {
-  .btn-marker { font-size: 12px; padding: 0 6px; }
-  .btn-small { font-size: 12px; }
+  .controls .btn,
+  .controls .speed-select-wrap,
+  .controls .speed-select { font-size: 14px; }
+  .btn-marker { padding: 0 6px; }
   .info-cell .value { font-size: 16px; }
 }
 
