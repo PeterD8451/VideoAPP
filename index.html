@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
@@ -11,14 +11,14 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="stylesheet" href="style.css" />
-  <title>VideoAPP – Frame-Analyse</title>
+  <title>VideoAPP – Frame Analysis</title>
 </head>
 <body>
   <header class="topbar">
     <h1>VideoAPP</h1>
     <div class="top-actions">
-      <label class="btn btn-primary" for="fileInput">
-        <span>Video&nbsp;laden</span>
+      <label class="btn btn-primary" for="fileInput" title="Open a video file from this device">
+        <span>Load&nbsp;video</span>
         <input id="fileInput" type="file" accept="video/*" hidden />
       </label>
     </div>
@@ -26,30 +26,30 @@
 
   <main>
     <section class="video-wrap" id="videoWrap">
-      <video id="video" playsinline preload="auto" disablePictureInPicture></video>
+      <video id="video" playsinline preload="auto" disablePictureInPicture title="Pinch to zoom · swipe to scrub · double-tap to play/pause"></video>
       <canvas id="snapshotCanvas" hidden></canvas>
       <div class="zoom-controls" id="zoomControls" hidden>
-        <button id="zoomOutBtn" type="button" title="Zoom −" aria-label="Verkleinern">−</button>
-        <span class="zoom-level" id="zoomLevel">1.0×</span>
-        <button id="zoomInBtn" type="button" title="Zoom +" aria-label="Vergrößern">+</button>
-        <button id="zoomResetBtn" type="button" title="Zoom zurücksetzen" aria-label="Zoom zurücksetzen">⟲</button>
+        <button id="zoomOutBtn" type="button" title="Zoom out (−)" aria-label="Zoom out">−</button>
+        <span class="zoom-level" id="zoomLevel" title="Current zoom level">1.0×</span>
+        <button id="zoomInBtn" type="button" title="Zoom in (+)" aria-label="Zoom in">+</button>
+        <button id="zoomResetBtn" type="button" title="Reset zoom (0)" aria-label="Reset zoom">⟲</button>
       </div>
       <div class="video-placeholder" id="placeholder">
-        <p>Tippe auf <strong>Video&nbsp;laden</strong>, um zu starten.</p>
-        <p class="hint">Frame-für-Frame-Analyse, Zeitmarker und Export – alles offline im Browser.</p>
+        <p>Tap <strong>Load&nbsp;video</strong> to begin.</p>
+        <p class="hint">Frame-by-frame analysis, time markers and export — fully offline in the browser.</p>
       </div>
     </section>
 
     <section class="info-bar">
-      <div class="info-cell">
-        <span class="label">Zeit</span>
+      <div class="info-cell" title="Current playback time (mm:ss.ms)">
+        <span class="label">Time</span>
         <span class="value" id="currentTime">00:00.000</span>
       </div>
-      <div class="info-cell">
+      <div class="info-cell" title="Current frame index">
         <span class="label">Frame</span>
         <span class="value" id="currentFrame">0</span>
       </div>
-      <div class="info-cell">
+      <div class="info-cell" title="Frame rate detected from the video">
         <span class="label">FPS</span>
         <span class="value" id="fpsDisplay">30</span>
       </div>
@@ -57,20 +57,20 @@
 
     <section class="controls">
       <div class="seek-row">
-        <input type="range" id="seekBar" min="0" max="1000" value="0" step="1" />
+        <input type="range" id="seekBar" min="0" max="1000" value="0" step="1" title="Drag to seek through the video" />
       </div>
 
       <div class="btn-row primary-row">
-        <button id="stepBackBtn" class="btn btn-ctrl btn-frame-step" title="Ein Frame zurück" aria-label="Frame zurück">−1F</button>
-        <button id="playBtn" class="btn btn-ctrl btn-play" title="Abspielen/Pausieren" aria-label="Abspielen">&#x25B6;&#xFE0E;</button>
-        <button id="stepFwdBtn" class="btn btn-ctrl btn-frame-step" title="Ein Frame vor" aria-label="Frame vor">+1F</button>
+        <button id="stepBackBtn" class="btn btn-ctrl btn-frame-step" title="Step one frame back (←)" aria-label="Frame back">−1F</button>
+        <button id="playBtn" class="btn btn-ctrl btn-play" title="Play / Pause (Space)" aria-label="Play / Pause">&#x25B6;&#xFE0E;</button>
+        <button id="stepFwdBtn" class="btn btn-ctrl btn-frame-step" title="Step one frame forward (→)" aria-label="Frame forward">+1F</button>
       </div>
 
       <div class="btn-row secondary-row">
-        <button id="jumpBack10Btn" class="btn btn-small" title="10 Frames zurück">−10F</button>
-        <label class="speed-select-wrap" title="Wiedergabegeschwindigkeit">
-          <span class="speed-label">Tempo</span>
-          <select id="speedSelect" class="speed-select">
+        <button id="jumpBack10Btn" class="btn btn-small" title="Skip 10 frames back (↓)">−10F</button>
+        <label class="speed-select-wrap" title="Playback speed">
+          <span class="speed-label">Speed</span>
+          <select id="speedSelect" class="speed-select" title="Playback speed">
             <option value="0.25">0.25×</option>
             <option value="0.5">0.5×</option>
             <option value="1" selected>1.0×</option>
@@ -78,28 +78,28 @@
             <option value="2">2.0×</option>
           </select>
         </label>
-        <button id="jumpFwd10Btn" class="btn btn-small" title="10 Frames vor">+10F</button>
+        <button id="jumpFwd10Btn" class="btn btn-small" title="Skip 10 frames forward (↑)">+10F</button>
       </div>
 
       <div class="btn-row marker-row">
-        <button id="setStartBtn" class="btn btn-marker btn-start" title="Startpunkt setzen">▶ Start</button>
-        <button id="setEndBtn" class="btn btn-marker btn-end" title="Endpunkt setzen">⏹ Ende</button>
-        <button id="saveLapBtn" class="btn btn-marker btn-lap" title="Messung speichern" disabled>＋ Speichern</button>
+        <button id="setStartBtn" class="btn btn-marker btn-start" title="Set start marker at current time (S)">Start</button>
+        <button id="setEndBtn" class="btn btn-marker btn-end" title="Set end marker at current time (E)">End</button>
+        <button id="saveLapBtn" class="btn btn-marker btn-lap" title="Save measurement (L)" disabled>＋ Save</button>
       </div>
 
       <div class="markers-display">
-        <div class="marker-cell">
+        <div class="marker-cell" title="Start time of the current measurement">
           <span class="label">Start</span>
           <span class="value" id="startMarker">–</span>
-          <button class="marker-jump" id="jumpStartBtn" title="Zu Start springen">↦</button>
+          <button class="marker-jump" id="jumpStartBtn" title="Jump to start marker">↦</button>
         </div>
-        <div class="marker-cell">
-          <span class="label">Ende</span>
+        <div class="marker-cell" title="End time of the current measurement">
+          <span class="label">End</span>
           <span class="value" id="endMarker">–</span>
-          <button class="marker-jump" id="jumpEndBtn" title="Zu Ende springen">↦</button>
+          <button class="marker-jump" id="jumpEndBtn" title="Jump to end marker">↦</button>
         </div>
-        <div class="marker-cell delta">
-          <span class="label">Differenz</span>
+        <div class="marker-cell delta" title="Duration between start and end markers">
+          <span class="label">Delta</span>
           <span class="value" id="deltaValue">–</span>
         </div>
       </div>
@@ -107,22 +107,18 @@
 
     <section class="measurements">
       <div class="section-head">
-        <h2>Messungen</h2>
+        <h2>Measurements</h2>
         <div class="section-actions">
-          <button id="exportCsvBtn" class="btn btn-small" disabled>CSV</button>
-          <button id="screenshotBtn" class="btn btn-small">Screenshot</button>
-          <button id="clearAllBtn" class="btn btn-small btn-danger" disabled>Alle löschen</button>
+          <button id="exportCsvBtn" class="btn btn-small" disabled title="Export all measurements as CSV">CSV</button>
+          <button id="screenshotBtn" class="btn btn-small" title="Save the current frame as a PNG image">Screenshot</button>
+          <button id="clearAllBtn" class="btn btn-small btn-danger" disabled title="Delete all saved measurements">Clear all</button>
         </div>
       </div>
       <ol class="measurement-list" id="measurementList">
-        <li class="empty">Noch keine Messungen gespeichert.</li>
+        <li class="empty">No measurements saved yet.</li>
       </ol>
     </section>
   </main>
-
-  <footer class="footer">
-    <span>Frame-Schritte tippen oder Tasten: ←/→ ein Frame, Leertaste Play, S/E Marker, L speichern.</span>
-  </footer>
 
   <script src="app.js"></script>
 </body>
