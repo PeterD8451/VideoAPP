@@ -339,7 +339,7 @@
     if (state.measurements.length === 0) {
       const li = document.createElement('li');
       li.className = 'empty';
-      li.textContent = 'Noch keine Messungen gespeichert.';
+      li.textContent = 'No measurements saved yet.';
       measurementList.appendChild(li);
       exportCsvBtn.disabled = true;
       clearAllBtn.disabled = true;
@@ -361,14 +361,14 @@
         </div>
         <div class="actions">
           <span class="duration">${fmtDelta(delta)}</span>
-          <button class="icon-btn" data-action="jump" title="Zu Start springen">↦</button>
-          <button class="icon-btn danger" data-action="del" title="Löschen">✕</button>
+          <button class="icon-btn" data-action="jump" title="Jump to this measurement">↦</button>
+          <button class="icon-btn danger" data-action="del" title="Delete this measurement">✕</button>
         </div>
       `;
       const nameEl = li.querySelector('.name');
-      nameEl.textContent = m.name || `Messung ${i + 1}`;
+      nameEl.textContent = m.name || `Measurement ${i + 1}`;
       nameEl.addEventListener('blur', () => {
-        m.name = nameEl.textContent.trim() || `Messung ${i + 1}`;
+        m.name = nameEl.textContent.trim() || `Measurement ${i + 1}`;
       });
       nameEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
@@ -377,14 +377,14 @@
       li.querySelector('[data-action="jump"]').addEventListener('click', () => {
         if (!video.duration) return;
         video.currentTime = m.start;
-        toast(`Springe zu #${i + 1}`);
+        toast(`Jump to #${i + 1}`);
       });
       li.querySelector('[data-action="del"]').addEventListener('click', () => {
         state.measurements.splice(i, 1);
         renderMeasurementList();
       });
 
-      li.title = `${frames} Frames`;
+      li.title = `${frames} frames @ ${m.fps} fps`;
       measurementList.appendChild(li);
     });
 
@@ -456,7 +456,7 @@
     if (detected) {
       state.fps = detected;
     } else {
-      toast('FPS-Erkennung nicht möglich – Standard 30');
+      toast('FPS detection failed — using default 30');
     }
     fpsDisplay.textContent = formatFps(state.fps);
     updateTimeDisplay();
@@ -505,14 +505,14 @@
     if (!video.duration) return;
     state.startTime = video.currentTime;
     updateMarkersDisplay();
-    toast(`Start: ${fmtTime(state.startTime)}`);
+    toast(`Start set: ${fmtTime(state.startTime)}`);
   });
 
   setEndBtn.addEventListener('click', () => {
     if (!video.duration) return;
     state.endTime = video.currentTime;
     updateMarkersDisplay();
-    toast(`Ende: ${fmtTime(state.endTime)}`);
+    toast(`End set: ${fmtTime(state.endTime)}`);
   });
 
   jumpStartBtn.addEventListener('click', () => {
@@ -527,7 +527,7 @@
     const start = Math.min(state.startTime, state.endTime);
     const end = Math.max(state.startTime, state.endTime);
     state.measurements.push({
-      name: `Messung ${state.measurements.length + 1}`,
+      name: `Measurement ${state.measurements.length + 1}`,
       start,
       end,
       fps: state.fps,
@@ -535,7 +535,7 @@
       createdAt: new Date().toISOString(),
     });
     renderMeasurementList();
-    toast('Messung gespeichert');
+    toast('Measurement saved');
     // Roll over: end → new start
     state.startTime = state.endTime;
     state.endTime = null;
@@ -544,7 +544,7 @@
 
   clearAllBtn.addEventListener('click', () => {
     if (state.measurements.length === 0) return;
-    if (!confirm('Alle Messungen löschen?')) return;
+    if (!confirm('Delete all measurements?')) return;
     state.measurements = [];
     renderMeasurementList();
   });
@@ -563,7 +563,7 @@
 
   exportCsvBtn.addEventListener('click', () => {
     if (state.measurements.length === 0) return;
-    const header = ['#', 'Name', 'Datei', 'Start (s)', 'Ende (s)', 'Dauer (s)', 'Start (mm:ss.ms)', 'Ende (mm:ss.ms)', 'Dauer (mm:ss.ms)', 'Frames', 'FPS', 'Erstellt'];
+    const header = ['#', 'Name', 'File', 'Start (s)', 'End (s)', 'Duration (s)', 'Start (mm:ss.ms)', 'End (mm:ss.ms)', 'Duration (mm:ss.ms)', 'Frames', 'FPS', 'Created'];
     const rows = state.measurements.map((m, i) => {
       const dur = m.end - m.start;
       const frames = Math.round(dur * m.fps);
@@ -584,9 +584,9 @@
     });
     const csv = '﻿' + [header.join(','), ...rows].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const baseName = state.currentFile ? state.currentFile.name.replace(/\.[^.]+$/, '') : 'messungen';
-    downloadBlob(blob, `${baseName}-messungen.csv`);
-    toast('CSV exportiert');
+    const baseName = state.currentFile ? state.currentFile.name.replace(/\.[^.]+$/, '') : 'measurements';
+    downloadBlob(blob, `${baseName}-measurements.csv`);
+    toast('CSV exported');
   });
 
   function csvEscape(s) {
@@ -597,7 +597,7 @@
 
   screenshotBtn.addEventListener('click', () => {
     if (!video.videoWidth) {
-      toast('Kein Video geladen');
+      toast('No video loaded');
       return;
     }
     snapshotCanvas.width = video.videoWidth;
@@ -606,16 +606,16 @@
     try {
       ctx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
     } catch (err) {
-      toast('Screenshot fehlgeschlagen');
+      toast('Screenshot failed');
       return;
     }
     snapshotCanvas.toBlob((blob) => {
-      if (!blob) { toast('Screenshot fehlgeschlagen'); return; }
+      if (!blob) { toast('Screenshot failed'); return; }
       const t = video.currentTime;
       const frame = frameFromTime(t);
       const baseName = state.currentFile ? state.currentFile.name.replace(/\.[^.]+$/, '') : 'frame';
       downloadBlob(blob, `${baseName}-f${frame}-${fmtTime(t).replace(/[:.]/g, '-')}.png`);
-      toast('Screenshot gespeichert');
+      toast('Screenshot saved');
     }, 'image/png');
   });
 

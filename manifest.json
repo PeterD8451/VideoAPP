@@ -1,14 +1,14 @@
 {
-  "name": "VideoAPP – Frame-Analyse",
+  "name": "VideoAPP – Frame Analysis",
   "short_name": "VideoAPP",
-  "description": "Videos Frame für Frame analysieren und Zeiten zwischen Start- und Endmarkern messen.",
+  "description": "Frame-by-frame video analysis with time measurement between start and end markers.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "lang": "de",
+  "lang": "en",
   "icons": [
     {
       "src": "icons/icon-192.png",
