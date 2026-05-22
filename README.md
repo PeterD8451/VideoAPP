@@ -34,10 +34,15 @@ Eine Smartphone-freundliche **Progressive Web App (PWA)** zur **Frame-für-Frame
 | S | Startpunkt setzen |
 | E | Endpunkt setzen |
 | L | Messung speichern |
+| + / − | Zoom rein / raus |
+| 0 | Zoom zurücksetzen |
+| Strg + Mausrad | Zoom am Mauszeiger (Desktop) |
 
 ### Touch-Gesten
 
 - **Horizontal über das Video wischen**: Frame-für-Frame scrubben.
+- **Pinch (2 Finger)**: Video zoomen.
+- **1-Finger-Drag bei aktivem Zoom**: Bildausschnitt verschieben.
 - **Doppeltipp aufs Video**: Play / Pause.
 
 ## Hosten

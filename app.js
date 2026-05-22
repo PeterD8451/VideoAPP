@@ -34,6 +34,12 @@
 
   const snapshotCanvas = document.getElementById('snapshotCanvas');
 
+  const zoomControls = document.getElementById('zoomControls');
+  const zoomLevel = document.getElementById('zoomLevel');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+
   const state = {
     fps: 30,
     startTime: null,
@@ -355,7 +361,7 @@
         </div>
         <div class="actions">
           <span class="duration">${fmtDelta(delta)}</span>
-          <button class="icon-btn" data-action="jump" title="Zu Start springen">↧</button>
+          <button class="icon-btn" data-action="jump" title="Zu Start springen">↦</button>
           <button class="icon-btn danger" data-action="del" title="Löschen">✕</button>
         </div>
       `;
@@ -417,6 +423,8 @@
     video.src = url;
     video.load();
     placeholder.classList.add('hidden');
+    resetZoom();
+    zoomControls.hidden = false;
   });
 
   video.addEventListener('loadedmetadata', () => {
@@ -644,36 +652,142 @@
       case 'l': case 'L':
         if (!saveLapBtn.disabled) saveLapBtn.click();
         break;
+      case '+': case '=':
+        e.preventDefault();
+        setZoomCentered(zoom.scale * 1.5);
+        break;
+      case '-': case '_':
+        e.preventDefault();
+        setZoomCentered(zoom.scale / 1.5);
+        break;
+      case '0':
+        e.preventDefault();
+        resetZoom();
+        break;
     }
   });
 
-  // ── Touch Gestures on Video ───────────────────────────────────────────
-  let touchStartX = null;
-  let touchStartT = null;
-  const SWIPE_THRESHOLD = 18; // px per frame step
+  // ── Zoom & Gestures on Video ──────────────────────────────────────────
+  const SWIPE_THRESHOLD = 18;
+  const ZOOM_MIN = 1;
+  const ZOOM_MAX = 8;
+  const zoom = { scale: 1, tx: 0, ty: 0 };
+  const gesture = { type: null };
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function applyZoom() {
+    video.style.transform = `translate(${zoom.tx}px, ${zoom.ty}px) scale(${zoom.scale})`;
+    zoomLevel.textContent = `${zoom.scale.toFixed(1)}×`;
+    zoomOutBtn.disabled = zoom.scale <= ZOOM_MIN + 0.001;
+    zoomInBtn.disabled = zoom.scale >= ZOOM_MAX - 0.001;
+    zoomResetBtn.disabled = zoom.scale <= ZOOM_MIN + 0.001 && zoom.tx === 0 && zoom.ty === 0;
+  }
+
+  function constrainPan() {
+    const w = video.offsetWidth;
+    const h = video.offsetHeight;
+    const maxX = (w * (zoom.scale - 1)) / 2;
+    const maxY = (h * (zoom.scale - 1)) / 2;
+    zoom.tx = clamp(zoom.tx, -maxX, maxX);
+    zoom.ty = clamp(zoom.ty, -maxY, maxY);
+  }
+
+  function setZoomAtPoint(newScale, clientX, clientY) {
+    newScale = clamp(newScale, ZOOM_MIN, ZOOM_MAX);
+    if (newScale === zoom.scale) return;
+    const rect = video.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const ratio = newScale / zoom.scale;
+    zoom.tx = dx * (1 - ratio) + ratio * zoom.tx;
+    zoom.ty = dy * (1 - ratio) + ratio * zoom.ty;
+    zoom.scale = newScale;
+    constrainPan();
+    applyZoom();
+  }
+
+  function setZoomCentered(newScale) {
+    const rect = video.getBoundingClientRect();
+    setZoomAtPoint(newScale, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  }
+
+  function resetZoom() {
+    zoom.scale = 1; zoom.tx = 0; zoom.ty = 0;
+    applyZoom();
+  }
+
+  zoomInBtn.addEventListener('click', () => setZoomCentered(zoom.scale * 1.5));
+  zoomOutBtn.addEventListener('click', () => setZoomCentered(zoom.scale / 1.5));
+  zoomResetBtn.addEventListener('click', resetZoom);
+
+  function touchDist(t) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+  function touchMid(t) {
+    return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 };
+  }
 
   video.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1 || !video.duration) return;
-    touchStartX = e.touches[0].clientX;
-    touchStartT = video.currentTime;
-    pauseIfNeeded();
-  }, { passive: true });
+    if (!video.duration) return;
+    if (e.touches.length === 2) {
+      gesture.type = 'pinch';
+      gesture.pinchDist = touchDist(e.touches);
+      gesture.pinchScale = zoom.scale;
+      gesture.pinchCenter = touchMid(e.touches);
+      e.preventDefault();
+    } else if (e.touches.length === 1) {
+      if (zoom.scale > 1.01) {
+        gesture.type = 'pan';
+        gesture.panX = e.touches[0].clientX;
+        gesture.panY = e.touches[0].clientY;
+        gesture.panTx = zoom.tx;
+        gesture.panTy = zoom.ty;
+      } else {
+        gesture.type = 'scrub';
+        gesture.scrubX = e.touches[0].clientX;
+        gesture.scrubT = video.currentTime;
+        pauseIfNeeded();
+      }
+    }
+  }, { passive: false });
 
   video.addEventListener('touchmove', (e) => {
-    if (touchStartX == null || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    const steps = Math.trunc(dx / SWIPE_THRESHOLD);
-    const target = touchStartT + steps / state.fps;
-    const clamped = Math.max(0, Math.min(video.duration, target));
-    video.currentTime = clamped;
-  }, { passive: true });
+    if (gesture.type === 'pinch' && e.touches.length === 2) {
+      const ratio = touchDist(e.touches) / gesture.pinchDist;
+      setZoomAtPoint(gesture.pinchScale * ratio, gesture.pinchCenter.x, gesture.pinchCenter.y);
+      e.preventDefault();
+    } else if (gesture.type === 'pan' && e.touches.length === 1) {
+      zoom.tx = gesture.panTx + (e.touches[0].clientX - gesture.panX);
+      zoom.ty = gesture.panTy + (e.touches[0].clientY - gesture.panY);
+      constrainPan();
+      applyZoom();
+      e.preventDefault();
+    } else if (gesture.type === 'scrub' && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - gesture.scrubX;
+      const steps = Math.trunc(dx / SWIPE_THRESHOLD);
+      const target = gesture.scrubT + steps / state.fps;
+      video.currentTime = Math.max(0, Math.min(video.duration, target));
+    }
+  }, { passive: false });
 
-  video.addEventListener('touchend', () => {
-    touchStartX = null;
-    touchStartT = null;
+  video.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) gesture.type = null;
   });
+  video.addEventListener('touchcancel', () => { gesture.type = null; });
 
-  // Double-tap on video toggles play
+  video.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setZoomAtPoint(zoom.scale * factor, e.clientX, e.clientY);
+  }, { passive: false });
+
+  // Double-tap on video toggles play (works for taps without drag because we don't preventDefault on simple taps)
   let lastTap = 0;
   video.addEventListener('click', () => {
     const now = Date.now();

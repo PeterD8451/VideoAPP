@@ -28,6 +28,12 @@
     <section class="video-wrap" id="videoWrap">
       <video id="video" playsinline preload="auto" disablePictureInPicture></video>
       <canvas id="snapshotCanvas" hidden></canvas>
+      <div class="zoom-controls" id="zoomControls" hidden>
+        <button id="zoomOutBtn" type="button" title="Zoom −" aria-label="Verkleinern">−</button>
+        <span class="zoom-level" id="zoomLevel">1.0×</span>
+        <button id="zoomInBtn" type="button" title="Zoom +" aria-label="Vergrößern">+</button>
+        <button id="zoomResetBtn" type="button" title="Zoom zurücksetzen" aria-label="Zoom zurücksetzen">⟲</button>
+      </div>
       <div class="video-placeholder" id="placeholder">
         <p>Tippe auf <strong>Video&nbsp;laden</strong>, um zu starten.</p>
         <p class="hint">Frame-für-Frame-Analyse, Zeitmarker und Export – alles offline im Browser.</p>
@@ -85,12 +91,12 @@
         <div class="marker-cell">
           <span class="label">Start</span>
           <span class="value" id="startMarker">–</span>
-          <button class="marker-jump" id="jumpStartBtn" title="Zu Start springen">↧</button>
+          <button class="marker-jump" id="jumpStartBtn" title="Zu Start springen">↦</button>
         </div>
         <div class="marker-cell">
           <span class="label">Ende</span>
           <span class="value" id="endMarker">–</span>
-          <button class="marker-jump" id="jumpEndBtn" title="Zu Ende springen">↧</button>
+          <button class="marker-jump" id="jumpEndBtn" title="Zu Ende springen">↦</button>
         </div>
         <div class="marker-cell delta">
           <span class="label">Differenz</span>
