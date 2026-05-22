@@ -475,8 +475,8 @@
     video.addEventListener('loadedmetadata', () => video.requestVideoFrameCallback(onFrame), { once: true });
   }
 
-  video.addEventListener('play', () => { playBtn.textContent = '⏸'; });
-  video.addEventListener('pause', () => { playBtn.textContent = '▶'; });
+  video.addEventListener('play', () => { playBtn.textContent = '⏸︎'; });
+  video.addEventListener('pause', () => { playBtn.textContent = '▶︎'; });
 
   playBtn.addEventListener('click', () => {
     if (!video.src) return;

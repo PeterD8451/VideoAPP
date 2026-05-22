@@ -278,11 +278,14 @@ main {
   font-size: 20px;
   font-weight: 600;
   max-width: 110px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+  font-variant-emoji: text;
+  line-height: 1;
 }
 
 .btn-frame-step {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  letter-spacing: 0.02em;
+  /* size & font handled by .btn-ctrl so the row is uniform */
 }
 
 .btn-play {
