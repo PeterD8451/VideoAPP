@@ -84,6 +84,56 @@ main {
   object-fit: contain;
   display: block;
   background: #000;
+  transform-origin: center center;
+  will-change: transform;
+  touch-action: none;
+}
+
+.zoom-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 5;
+  user-select: none;
+}
+
+.zoom-controls[hidden] { display: none; }
+
+.zoom-controls button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zoom-controls button:active { background: rgba(255, 255, 255, 0.25); }
+.zoom-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.zoom-level {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text);
+  min-width: 40px;
+  text-align: center;
+  padding: 0 2px;
 }
 
 .video-placeholder {
@@ -225,12 +275,12 @@ main {
 
 .btn-ctrl {
   flex: 1;
-  font-size: 22px;
+  font-size: 20px;
+  font-weight: 600;
   max-width: 110px;
 }
 
 .btn-frame-step {
-  font-size: 17px;
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.02em;
 }
@@ -238,7 +288,6 @@ main {
 .btn-play {
   background: var(--accent);
   color: #001018;
-  min-width: 96px;
 }
 
 .speed-select-wrap {
@@ -296,8 +345,8 @@ main {
 }
 
 .btn-start { background: var(--start); color: #052e16; }
-.btn-end { background: var(--end); color: #1c0a02; }
-.btn-lap { background: var(--lap); color: #1e0a3a; }
+.btn-end { background: var(--danger); color: #fff5f5; }
+.btn-lap { background: var(--accent-strong); color: #001018; }
 .btn-danger { background: #7f1d1d; color: #fee2e2; }
 
 .markers-display {
